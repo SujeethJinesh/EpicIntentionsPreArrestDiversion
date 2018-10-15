@@ -1,11 +1,12 @@
 import pandas as pd
 import requests
-from api_keys import GOOGLE_MAPS_API_KEY
+from api_keys import GOOGLE_MAPS_API_KEY_SUJEETH, GOOGLE_MAPS_API_KEY_DIANA, GOOGLE_MAPS_API_KEY_FELIX
 from pandas import ExcelWriter
 from math import isnan
 import plotly.graph_objs as go
 import plotly
 import time
+import pickle
 
 
 def graph(excel, column_name, title, x_label, y_label="# of Arrests"):
@@ -26,10 +27,19 @@ def graph(excel, column_name, title, x_label, y_label="# of Arrests"):
 
 def clean_data(excel):
     # location of data
-    GOOGLE_MAPS_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?key=' + GOOGLE_MAPS_API_KEY + '&address='
     addresses = excel['Arrest.Location'].tolist()
+    errors = []
+    lat_lngs = []
+
     t0 = time.time()
     for index, address in enumerate(addresses):
+        if index > 26500:
+            GOOGLE_MAPS_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?key=' + GOOGLE_MAPS_API_KEY_DIANA + '&address='
+        elif index < 5000:
+            GOOGLE_MAPS_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?key=' + GOOGLE_MAPS_API_KEY_SUJEETH + '&address='
+        else:
+            GOOGLE_MAPS_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json?key=' + GOOGLE_MAPS_API_KEY_FELIX + '&address='
+        # time.sleep(1.2)  # prevent overruning server
         address += ", Atlanta, GA"
         req = requests.get(GOOGLE_MAPS_API_URL + address.replace(" ", "+"))
         resp = req.json()
@@ -39,21 +49,27 @@ def clean_data(excel):
             lat = lat_lng['lat']
             lng = lat_lng['lng']
             print(lat_lng)
+            lat_lngs.append({'address': address, "lat_lng": lat_lng, "index": index})
 
             # X is longitude and Y is latitude
             if excel['lng'][index] == '--' or excel['lng'][index] is None or excel['lng'][index] == '' or isnan(
                     excel['lng'][index]):
                 excel['lng'][index] = lng
-                excel['lng'][index] = lat
+                excel['lat'][index] = lat
         except IndexError:
-            import ipdb;
-            ipdb.set_trace()
+            with open('lat_lngs.pkl', 'wb') as f:
+                pickle.dump(lat_lngs, f)
+            errors.append(index)
             pass
+    with open('lat_lngs.pkl', 'wb') as f:
+        pickle.dump(lat_lngs, f)
     t1 = time.time()
-    print("time taken: ", t0-t1)
+    print("time taken: ", t1-t0)
+    print("errors", errors)
     writer = ExcelWriter("CleanedData.xlsx")
     excel.to_excel(writer, 'Sheet1')
     writer.save()
+    import ipdb; ipdb.set_trace()
 
 
 def init_data(filename):
