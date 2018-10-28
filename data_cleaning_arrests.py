@@ -66,6 +66,7 @@ def clean_data(excel):
     t1 = time.time()
     print("time taken: ", t1-t0)
     print("errors", errors)
+    # errors: 298, 494, 891, 901, 902, 1584, 1590, 1824, 2433, 2451, 3019, 3355, 3616, 4034, 4813, 4945, 4960, 5532, 5685, 5712, 5955, 6496, 6581, 8227, 8501, 9782, 10427, 18933, 35488, 42930
     writer = ExcelWriter("CleanedData.xlsx")
     excel.to_excel(writer, 'Sheet1')
     writer.save()
